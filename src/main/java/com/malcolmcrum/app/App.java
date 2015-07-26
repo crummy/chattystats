@@ -1,5 +1,7 @@
 package com.malcolmcrum.app;
 
+import org.joda.time.LocalDate;
+
 import java.util.Properties;
 
 
@@ -17,7 +19,15 @@ public class App
         Properties props = settings.getSettings();
 
         Shacknews shack = new Shacknews(props);
-        System.out.println("Latest post ID: " + shack.getLatestPostId());
+        System.out.println("Get post intervals for last ten days");
+
+        LocalDate localDate = LocalDate.now();
+        for (int i = 0; i < 10; ++i) {
+            int totalPostsForDay = shack.getPostCountForDay(localDate.minusDays(i));
+            System.out.println("Total posts for day " + i + ": " + totalPostsForDay);
+        }
+
+        System.out.println("Total offtopic posts for day 5: " + shack.getOfftopicPostsForDay(localDate.minusDays(5)));
 
     }
 
