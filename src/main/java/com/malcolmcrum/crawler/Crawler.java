@@ -6,9 +6,12 @@ import com.google.gson.JsonObject;
 
 import java.io.IOException;
 import java.sql.*;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.Date;
 
 /**
- * Maintains database integrity in regards to external ShackAPI
+ * Gets posts and shackers from ShackAPI. Sends posts and shackers to Database.
  * Created by Malcolm on 7/26/2015.
  */
 public class Crawler {
@@ -45,34 +48,111 @@ public class Crawler {
         }
 
         Crawler c = new Crawler();
+
+        // Before the timer starts, fill in shackers and posts - because this might take a while.
+        c.getShackers();
+        c.getPosts();
+
+        int millisecondsInHour = 1000 * 60 * 60;
+        ScheduledCrawl scheduledCrawl = new ScheduledCrawl(c);
+        Timer timer = new Timer();
+        timer.schedule(scheduledCrawl, millisecondsInHour, millisecondsInHour);
+        System.out.println("Crawler now operating. Checking for new posts and shackers every hour.");
     }
 
-    private Crawler() {
+    private static class ScheduledCrawl extends TimerTask {
+        Crawler crawler;
+
+        public ScheduledCrawl(Crawler c) {
+            this.crawler = c;
+        }
+
+        @Override
+        public void run() {
+            System.out.println("CRAWL BEGUN AT:" + new Date());
+            crawler.getShackers();
+            crawler.getPosts();
+            System.out.println("CRAWL FINISHED AT:" + new Date());
+        }
+    }
+
+    private void getShackers() {
+        System.out.println("Checking for new shackers...");
+        JsonArray shackers = api.getShackers();
+        int newShackers = 0;
+
+        for (JsonElement shackerElement : shackers) {
+            JsonObject shackerObj = shackerElement.getAsJsonObject();
+            Shacker shacker = new Shacker();
+            shacker.username = shackerObj.get("username").getAsString();
+            shacker.date = shackerObj.get("date").getAsString();
+            if (db.addShacker(shacker)) {
+                newShackers++;
+            }
+        }
+
+        if (newShackers > 0) {
+            System.out.println("Added " + newShackers + " new Shackers.");
+        }
+    }
+
+    private void getPosts() {
+        System.out.println("Checking for new posts...");
         int latestPostIdInDatabase = db.getLatestPostID();
         System.out.println("Latest post ID: " + latestPostIdInDatabase);
 
         if (latestPostIdInDatabase == -1) {
             System.out.println("No posts found in database. Populating from beginning.");
             int latestPostIdFromShack = api.getLatestPostID();
-            populateDatabaseWithPosts(latestPostIdFromShack, true);
+            populateDatabaseWithPosts(latestPostIdFromShack, true, false);
         } else {
             System.out.println("Latest postID in database: " + latestPostIdInDatabase + ". Populating newer posts");
-            populateDatabaseWithPosts(latestPostIdInDatabase, false);
+            populateDatabaseWithPosts(latestPostIdInDatabase, false, false);
         }
     }
 
-    private void populateDatabaseWithPosts(int startID, boolean reverse) {
-        JsonArray posts = api.getPosts(startID, reverse);
+    /**
+     * Requests up to 1000 posts, then inserts them into the database and reports results via System.out.
+     * @param startID The ID of the first post to get
+     * @param isReversed Indicates whether to look for posts prior to startID or after
+     * @param recurse If true, will find next set of posts, until no more are left to find.
+     */
+    private void populateDatabaseWithPosts(int startID, boolean isReversed, boolean recurse ) {
+        if (startID < 0) {
+            startID = 0;
+        }
+        JsonArray posts = api.getPosts(startID, isReversed);
+        int successfulPosts = 0;
+
         for (final JsonElement postElement : posts) {
             JsonObject postObj = postElement.getAsJsonObject();
             Post post = new Post();
             post.id = postObj.get("id").getAsInt();
+            if (post.id == 0) continue; // id=0 is bad data; date is out of order and fields are empty. Ignore it.
             post.parentId = postObj.get("parentId").getAsInt();
             post.threadId = postObj.get("threadId").getAsInt();
             post.author = postObj.get("author").getAsString();
             post.date = postObj.get("date").getAsString();
             post.category = postObj.get("category").getAsString();
-            db.addPost(post);
+            if (db.addPost(post)) {
+                successfulPosts++;
+            }
+        }
+
+        if (posts.size() == 0) {
+            System.out.println("No additional posts found.");
+        } else if (successfulPosts == posts.size()) {
+            System.out.println("Added " + successfulPosts + " to the database.");
+        } else {
+            System.err.println("Tried to add " + posts.size() + " to the database. " + successfulPosts + " succeeded.");
+        }
+
+        if (posts.size() != 0 && recurse) {
+            if (isReversed) {
+                populateDatabaseWithPosts(startID - 1000, true, true);
+            } else {
+                populateDatabaseWithPosts(startID + 1000, false, true);
+            }
         }
     }
 }

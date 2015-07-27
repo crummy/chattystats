@@ -33,9 +33,14 @@ public class ShackAPI {
         return result.get("id").getAsInt();
     }
 
-    public JsonArray getPosts(int startID, boolean reverse) {
-        JsonObject result = APIRequest("getPostRange?startId=" + startID + "&count=1000&reverse=" + reverse);
+    public JsonArray getPosts(int startID, boolean isReversed) {
+        JsonObject result = APIRequest("getPostRange?startId=" + startID + "&count=1000&reverse=" + isReversed);
         return result.get("posts").getAsJsonArray();
+    }
+
+    public JsonArray getShackers() {
+        JsonObject result = APIRequest("getAllUserRegistrationDates");
+        return result.get("users").getAsJsonArray();
     }
 
     private boolean testAPIConnection() {

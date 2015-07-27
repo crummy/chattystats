@@ -52,8 +52,9 @@ public class Database {
     }
 
 
-    public void addPost(Post post) {
+    public boolean addPost(Post post) {
         Statement statement = null;
+        boolean success = true;
         try {
             statement = db.createStatement();
             String sql = "INSERT INTO Post (id, threadId, parentId, category, author, date)" +
@@ -63,9 +64,29 @@ public class Database {
             db.commit();
         } catch (SQLException e) {
             // Probably the post already exists? TBD: Handle it.
+            success = false;
         } finally {
             close(null, statement);
         }
+        return success;
+    }
+
+    public boolean addShacker(Shacker shacker) {
+        Statement statement = null;
+        boolean success = true;
+        try {
+            statement = db.createStatement();
+            String sql = "INSERT INTO Shacker (name, registrationDate)" +
+                    "VALUES ('" + shacker.username + "', '" + shacker.date + "')";
+            statement.executeUpdate(sql);
+            db.commit();
+        } catch (SQLException e) {
+            // If shacker already exists, we don't mind.
+            success = false;
+        } finally {
+            close(null, statement);
+        }
+        return success;
     }
 
     /**
@@ -126,7 +147,7 @@ public class Database {
                 "    [threadId] INTEGER NOT NULL, \n" +
                 "    [parentId] INTEGER NOT NULL, \n" +
                 "    [category] TEXT, \n" +
-                "    [author] TEXT NOT NULL REFERENCES Shackers([name]), \n" +
+                "    [author] TEXT NOT NULL, \n" +
                 "    [body] TEXT, \n" +
                 "    [date] TEXT NOT NULL)";
         statement.executeUpdate(sql);
