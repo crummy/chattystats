@@ -16,7 +16,7 @@ import java.util.Date;
  */
 public class Crawler {
     static Settings settings;
-    static Database db;
+    static Database db; 
     static ShackAPI api;
 
     public static void main(String args[]) {
