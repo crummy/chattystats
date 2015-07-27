@@ -104,10 +104,10 @@ public class Crawler {
         if (latestPostIdInDatabase == -1) {
             System.out.println("No posts found in database. Populating from beginning.");
             int latestPostIdFromShack = api.getLatestPostID();
-            populateDatabaseWithPosts(latestPostIdFromShack, true, false);
+            populateDatabaseWithPosts(latestPostIdFromShack, true, true);
         } else {
             System.out.println("Latest postID in database: " + latestPostIdInDatabase + ". Populating newer posts");
-            populateDatabaseWithPosts(latestPostIdInDatabase, false, false);
+            populateDatabaseWithPosts(latestPostIdInDatabase, false, true);
         }
     }
 
