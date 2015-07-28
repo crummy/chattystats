@@ -53,17 +53,23 @@ public class Database {
 
 
     public boolean addPost(Post post) {
-        Statement statement = null;
+        PreparedStatement statement = null;
         boolean success = true;
         try {
-            statement = db.createStatement();
-            String sql = "INSERT INTO Post (id, threadId, parentId, category, author, date)" +
-                    "VALUES (" + post.id + ", " + post.threadId + ", " + post.parentId + ", '" +
-                                post.category + "', '" + post.author + "', '" + post.date + "')";
-            statement.executeUpdate(sql);
+            // TODO: Make sql-injection safe
+            String sql = "INSERT INTO Post (id, threadId, parentId, category, author, date) VALUES(?, ?, ?, ?, ?, ?)";
+            statement = db.prepareStatement(sql);
+            statement.setInt(1, post.id);
+            statement.setInt(2, post.threadId);
+            statement.setInt(3, post.parentId);
+            statement.setString(4, post.category);
+            statement.setString(5, post.author);
+            statement.setString(6, post.date);
+            statement.executeUpdate();
             db.commit();
         } catch (SQLException e) {
-            // Probably the post already exists? TBD: Handle it.
+            // Probably the post already exists? TODO: Handle it.
+            System.out.println("Failed to add post #" + post.id + " to DB: " + e.getMessage());
             success = false;
         } finally {
             close(null, statement);
@@ -72,13 +78,14 @@ public class Database {
     }
 
     public boolean addShacker(Shacker shacker) {
-        Statement statement = null;
+        PreparedStatement statement = null;
         boolean success = true;
         try {
-            statement = db.createStatement();
-            String sql = "INSERT INTO Shacker (name, registrationDate)" +
-                    "VALUES ('" + shacker.username + "', '" + shacker.date + "')";
-            statement.executeUpdate(sql);
+            String sql = "INSERT INTO Shacker (name, registrationDate) VALUES (?, ?)";
+            statement = db.prepareStatement(sql);
+            statement.setString(1, shacker.username);
+            statement.setString(2, shacker.date);
+            statement.executeUpdate();
             db.commit();
         } catch (SQLException e) {
             // If shacker already exists, we don't mind.

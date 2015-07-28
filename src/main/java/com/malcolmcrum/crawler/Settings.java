@@ -29,4 +29,6 @@ public class Settings {
     public String getShackAPIURL() {
         return prop.getProperty("chatty_api_url", "http://winchatty.com/v2/");
     }
+
+    public int getMaxPostsPerBatch() { return Integer.parseInt(prop.getProperty("max_posts_per_batch", "1000")); }
 }

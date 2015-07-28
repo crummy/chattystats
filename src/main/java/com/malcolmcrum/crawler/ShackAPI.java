@@ -33,11 +33,27 @@ public class ShackAPI {
         return result.get("id").getAsInt();
     }
 
+    /**
+     * Returns up to settings.getMaxPostsPerBatch posts.
+     * Note: Will skip over nuked posts.
+     * @param startID Start of range for requesting posts
+     * @param isReversed Look backwards through posts if true
+     * @return JsonArray of posts
+     */
     public JsonArray getPosts(int startID, boolean isReversed) {
-        JsonObject result = APIRequest("getPostRange?startId=" + startID + "&count=1000&reverse=" + isReversed);
+        int postsPerBatch = settings.getMaxPostsPerBatch();
+        JsonObject result = APIRequest("getPostRange?startId=" + startID +
+                                       "&count=" + postsPerBatch +
+                                       "&reverse=" + isReversed);
         return result.get("posts").getAsJsonArray();
     }
 
+    /**
+     * Gets a few thousand Shackers from the API.
+     * This is actually some cached list the API uses and is far from complete! Use it just to fill in some
+     * initial user database info.
+     * @return JsonArray of shackers, with username and registration dates
+     */
     public JsonArray getShackers() {
         JsonObject result = APIRequest("getAllUserRegistrationDates");
         return result.get("users").getAsJsonArray();

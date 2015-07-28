@@ -69,10 +69,11 @@ public class Crawler {
 
         @Override
         public void run() {
-            System.out.println("CRAWL BEGUN AT:" + new Date());
+            System.out.println();
+            System.out.println("CRAWL BEGUN AT: " + new Date());
             crawler.getShackers();
             crawler.getPosts();
-            System.out.println("CRAWL FINISHED AT:" + new Date());
+            System.out.println("CRAWL FINISHED AT: " + new Date());
         }
     }
 
@@ -99,20 +100,21 @@ public class Crawler {
     private void getPosts() {
         System.out.println("Checking for new posts...");
         int latestPostIdInDatabase = db.getLatestPostID();
-        System.out.println("Latest post ID: " + latestPostIdInDatabase);
+        System.out.println("Latest post ID from database: " + latestPostIdInDatabase);
 
         if (latestPostIdInDatabase == -1) {
-            System.out.println("No posts found in database. Populating from beginning.");
             int latestPostIdFromShack = api.getLatestPostID();
+            System.out.println("No posts found in database. Populating from " + latestPostIdFromShack + " backwards.");
             populateDatabaseWithPosts(latestPostIdFromShack, true, true);
         } else {
-            System.out.println("Latest postID in database: " + latestPostIdInDatabase + ". Populating newer posts");
-            populateDatabaseWithPosts(latestPostIdInDatabase, false, true);
+            int nextPost = latestPostIdInDatabase + 1;
+            System.out.println("Populating posts from " + nextPost + " onwards.");
+            populateDatabaseWithPosts(nextPost, false, true);
         }
     }
 
     /**
-     * Requests up to 1000 posts, then inserts them into the database and reports results via System.out.
+     * Requests a batch of posts, then inserts them into the database and reports results via System.out.
      * @param startID The ID of the first post to get
      * @param isReversed Indicates whether to look for posts prior to startID or after
      * @param recurse If true, will find next set of posts, until no more are left to find.
@@ -141,17 +143,26 @@ public class Crawler {
 
         if (posts.size() == 0) {
             System.out.println("No additional posts found.");
-        } else if (successfulPosts == posts.size()) {
-            System.out.println("Added " + successfulPosts + " to the database.");
-        } else {
-            System.err.println("Tried to add " + posts.size() + " to the database. " + successfulPosts + " succeeded.");
+        } else  {
+            int firstID = posts.get(0).getAsJsonObject().get("id").getAsInt();
+            int lastID = posts.get(posts.size()-1).getAsJsonObject().get("id").getAsInt();
+            int totalPosts = posts.size();
+            int failedPosts = totalPosts - successfulPosts;
+            System.out.print("Adding " + totalPosts + " posts [" + firstID + ".." + lastID + "]: ");
+            if (failedPosts == 0) {
+                System.err.println("Success.");
+            } else {
+                System.out.println(failedPosts + "failed!");
+            }
         }
 
         if (posts.size() != 0 && recurse) {
             if (isReversed) {
-                populateDatabaseWithPosts(startID - 1000, true, true);
+                int nextStartID = posts.get(posts.size()-1).getAsJsonObject().get("id").getAsInt() - 1;
+                populateDatabaseWithPosts(nextStartID, true, true);
             } else {
-                populateDatabaseWithPosts(startID + 1000, false, true);
+                int nextStartID = posts.get(posts.size()-1).getAsJsonObject().get("id").getAsInt() + 1;
+                populateDatabaseWithPosts(nextStartID, false, true);
             }
         }
     }
