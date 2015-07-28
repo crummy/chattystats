@@ -19,6 +19,7 @@ public class Database {
 
     /**
      * Call this at program termination.
+     * TODO: Use or remove this
      */
     public void closeDatabase() {
         try {
@@ -94,6 +95,36 @@ public class Database {
             close(null, statement);
         }
         return success;
+    }
+
+    public DayStats getDayStats(int year, int month, int day) {
+        DayStats stats = null;
+        Statement statement = null;
+        ResultSet rs = null;
+        String dateString = year + "/" + String.format("%02d", month) + "/" + String.format("%02d", day);
+        try {
+            String sql = "SELECT * FROM Post WHERE date BETWEEN '" + dateString + " 00:00:00.00' AND '" + dateString + " 23:59:59.99'";
+            statement = db.createStatement();
+            rs = statement.executeQuery(sql);
+
+            stats = new DayStats();
+            while (rs.next()) {
+                System.out.println("id: " + rs.getInt("id"));
+                stats.totalPosts++;
+                if (rs.getInt("parentId") == 0) {
+                    stats.totalRootPosts++;
+                }
+
+                String category = rs.getString("category");
+                int categoryCount = stats.postsInCategories.get(category);
+                stats.postsInCategories.put(category, categoryCount + 1);
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to query database for day " + dateString + ": " + e.getMessage());
+        } finally {
+            close(rs, statement);
+        }
+        return stats;
     }
 
     /**

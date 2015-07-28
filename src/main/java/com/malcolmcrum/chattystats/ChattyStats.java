@@ -8,8 +8,6 @@ import java.sql.SQLException;
  * Created by Malcolm on 7/28/2015.
  */
 public class ChattyStats {
-    private static Database db;
-    private static Settings settings;
 
     public static void main(String args[]) {
         String settingsFileName;
@@ -18,17 +16,19 @@ public class ChattyStats {
         } else {
             settingsFileName = "default.properties";
         }
+
+        Settings settings = null;
         try {
             settings = new Settings(settingsFileName);
         } catch (IOException e) {
             System.err.println("Failed to read settings file: " + e.getMessage());
         }
 
+        Database db = null;
         try {
             db = new Database(settings);
         } catch (SQLException e) {
             System.err.println("Failed to connect to database: " + e.getMessage());
-            db.closeDatabase();
             System.exit(1);
         }
 
@@ -36,10 +36,9 @@ public class ChattyStats {
             Crawler crawler = new Crawler(settings, db);
         } catch (IOException e) {
             System.err.println("Failed to initialize crawler. Probably the API connection failed.");
-            db.closeDatabase();
             System.exit(1);
         }
 
-        System.out.println("Done initializing stuff");
+        ChattyStatsAPI api = new ChattyStatsAPI(db);
     }
 }
