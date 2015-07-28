@@ -1,4 +1,4 @@
-package com.malcolmcrum.crawler;
+package com.malcolmcrum.chattystats;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -14,50 +14,31 @@ import java.util.Date;
  * Gets posts and shackers from ShackAPI. Sends posts and shackers to Database.
  * Created by Malcolm on 7/26/2015.
  */
-public class Crawler {
-    static Settings settings;
-    static Database db;
-    static ShackAPI api;
+public class Crawler implements Runnable {
+    private Settings settings;
+    private Database db;
+    private ShackAPI api;
 
-    public static void main(String args[]) {
-        String settingsFileName;
-        if (args.length > 1) {
-            settingsFileName = args[1];
-        } else {
-            settingsFileName = "crawler.properties";
-        }
-        try {
-            settings = new Settings(settingsFileName);
-        } catch (IOException e) {
-            System.err.println("Failed to read settings file: " + e.getMessage());
-        }
+    public Crawler(Settings settings, Database db) throws IOException {
+        this.settings = settings;
+        this.db = db;
+        this.api = new ShackAPI(settings);
 
-        try {
-            db = new Database(settings);
-        } catch (SQLException e) {
-            System.err.println("Failed to connect to database: " + e.getMessage());
-            db.closeDatabase();
-            System.exit(1);
-        }
+        Thread thread = new Thread(this, "Crawler");
+        thread.start();
+    }
 
-        try {
-            api = new ShackAPI(settings);
-        } catch (IOException e) {
-            System.err.println("Shack API connection failed: " + e.getMessage());
-            System.exit(1);
-        }
-
-        Crawler c = new Crawler();
-
+    @Override
+    public void run() {
         // Before the timer starts, fill in shackers and posts - because this might take a while.
-        c.getShackers();
-        c.getPosts();
+        getShackers();
+        getPosts();
 
-        int millisecondsInHour = 1000 * 60 * 60;
-        ScheduledCrawl scheduledCrawl = new ScheduledCrawl(c);
+        int interval = settings.getCrawlIntervalMs();
+        ScheduledCrawl scheduledCrawl = new ScheduledCrawl(this);
         Timer timer = new Timer();
-        timer.schedule(scheduledCrawl, millisecondsInHour, millisecondsInHour);
-        System.out.println("Crawler now operating. Checking for new posts and shackers every hour.");
+        timer.schedule(scheduledCrawl, interval, interval);
+        System.out.println("Crawler now operating. Checking for new posts and shackers every " + interval/1000 + "s.");
     }
 
     private static class ScheduledCrawl extends TimerTask {

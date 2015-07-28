@@ -1,4 +1,4 @@
-package com.malcolmcrum.crawler;
+package com.malcolmcrum.chattystats;
 
 import java.sql.*;
 

@@ -1,11 +1,11 @@
-package com.malcolmcrum.crawler;
+package com.malcolmcrum.chattystats;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
 /**
- * Interfaces with properties file to handle crawler settings
+ * Interfaces with properties file to handle chattystats settings
  * Created by Malcolm on 7/26/2015.
  */
 public class Settings {
@@ -30,5 +30,11 @@ public class Settings {
         return prop.getProperty("chatty_api_url", "http://winchatty.com/v2/");
     }
 
-    public int getMaxPostsPerBatch() { return Integer.parseInt(prop.getProperty("max_posts_per_batch", "1000")); }
+    public int getMaxPostsPerBatch() {
+        return Integer.parseInt(prop.getProperty("max_posts_per_batch", "1000"));
+    }
+
+    public int getCrawlIntervalMs() {
+        return Integer.parseInt(prop.getProperty("crawl_interval_ms", "600000"));
+    }
 }

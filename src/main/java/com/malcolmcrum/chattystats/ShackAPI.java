@@ -1,4 +1,4 @@
-package com.malcolmcrum.crawler;
+package com.malcolmcrum.chattystats;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;

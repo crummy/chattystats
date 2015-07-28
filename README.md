@@ -6,5 +6,4 @@ Crawls Shacknews API, consumes post information, populates database, exposes dat
 Instructions
 ------------
 * mvn install
-* mvn exec:java -Pcrawler (for crawler)
-* mvn exec:java -Papp (for app)
+* mvn exec:java
