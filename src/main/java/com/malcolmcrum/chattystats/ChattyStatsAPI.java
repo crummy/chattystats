@@ -18,6 +18,7 @@ public class ChattyStatsAPI {
         get(new Route("/day/:year/:month/:day") {
             @Override
             public Object handle(Request request, Response response) {
+                response.header("Access-Control-Allow-Origin", "*");
                 int year, month, day;
                 try {
                     year = Integer.parseInt(request.params(":year"));
