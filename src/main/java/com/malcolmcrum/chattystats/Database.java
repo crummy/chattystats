@@ -3,6 +3,7 @@ package com.malcolmcrum.chattystats;
 import org.joda.time.LocalDate;
 
 import java.sql.*;
+import java.util.HashMap;
 
 /**
  * Sets up and connects to local database
@@ -110,16 +111,36 @@ public class Database {
             rs = statement.executeQuery(sql);
 
             stats = new DayStats();
+            HashMap<String, Integer> authors = new HashMap<>();
             while (rs.next()) {
                 stats.totalPosts++;
                 if (rs.getInt("parentId") == 0) {
                     stats.totalRootPosts++;
                 }
 
+                String author = rs.getString("author");
+                Integer postsByUser = authors.get(author);
+                authors.put(author, postsByUser == null? 1 : postsByUser + 1);
+
                 String category = rs.getString("category");
                 int categoryCount = stats.postsInCategories.get(category);
                 stats.postsInCategories.put(category, categoryCount + 1);
             }
+
+            for (int i = 0; i < 10; ++i) {
+                int topPostCount = 0;
+                String topAuthor = "";
+                for (String author : authors.keySet()) {
+                    int posts = authors.get(author);
+                    if (posts > topPostCount) {
+                        topPostCount = posts;
+                        topAuthor = author;
+                    }
+                }
+                authors.remove(topAuthor);
+                stats.addTopAuthor(topAuthor, topPostCount);
+            }
+
         } catch (SQLException e) {
             System.err.println("Failed to query database for day " + date.toString() + ": " + e.getMessage());
         } finally {
