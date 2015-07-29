@@ -1,5 +1,7 @@
 package com.malcolmcrum.chattystats;
 
+import org.joda.time.LocalDate;
+
 import java.sql.*;
 
 /**
@@ -101,15 +103,14 @@ public class Database {
         DayStats stats = null;
         Statement statement = null;
         ResultSet rs = null;
-        String dateString = year + "/" + String.format("%02d", month) + "/" + String.format("%02d", day);
+        LocalDate date = new LocalDate(year, month, day);
         try {
-            String sql = "SELECT * FROM Post WHERE date BETWEEN '" + dateString + " 00:00:00.00' AND '" + dateString + " 23:59:59.99'";
+            String sql = "SELECT * FROM Post WHERE date >= '" + date.toString() + "' AND date < '" + date.plusDays(1).toString() + "'";
             statement = db.createStatement();
             rs = statement.executeQuery(sql);
 
             stats = new DayStats();
             while (rs.next()) {
-                System.out.println("id: " + rs.getInt("id"));
                 stats.totalPosts++;
                 if (rs.getInt("parentId") == 0) {
                     stats.totalRootPosts++;
@@ -120,7 +121,7 @@ public class Database {
                 stats.postsInCategories.put(category, categoryCount + 1);
             }
         } catch (SQLException e) {
-            System.err.println("Failed to query database for day " + dateString + ": " + e.getMessage());
+            System.err.println("Failed to query database for day " + date.toString() + ": " + e.getMessage());
         } finally {
             close(rs, statement);
         }
