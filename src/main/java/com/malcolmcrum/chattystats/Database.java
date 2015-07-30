@@ -102,13 +102,15 @@ public class Database {
 
     public DayStats getDayStats(int year, int month, int day) {
         DayStats stats = null;
-        Statement statement = null;
+        PreparedStatement statement = null;
         ResultSet rs = null;
         LocalDate date = new LocalDate(year, month, day);
         try {
-            String sql = "SELECT * FROM Post WHERE date >= '" + date.toString() + "' AND date < '" + date.plusDays(1).toString() + "'";
-            statement = db.createStatement();
-            rs = statement.executeQuery(sql);
+            String sql = "SELECT * FROM Post WHERE date >= '?' AND date < '?'";
+            statement = db.prepareStatement(sql);
+            statement.setString(1, date.toString());
+            statement.setString(2, date.plusDays(1).toString());
+            rs = statement.executeQuery();
 
             stats = new DayStats();
             HashMap<String, Integer> authors = new HashMap<>();
@@ -147,6 +149,62 @@ public class Database {
             close(rs, statement);
         }
         return stats;
+    }
+
+    public Post getPost(int id) {
+        Post post = null;
+        PreparedStatement statement = null;
+        ResultSet rs = null;
+        try {
+            String sql = "SELECT * FROM Post WHERE id == ?";
+            statement = db.prepareStatement(sql);
+            statement.setInt(1, id);
+            rs = statement.executeQuery();
+
+            post = new Post();
+            rs.next();
+            post.author = rs.getString("author");
+            post.body = rs.getString("body");
+            post.category = rs.getString("category");
+            post.date = rs.getString("date");
+            post.id = rs.getInt("id");
+            post.parentId = rs.getInt("parentId");
+            post.threadId = rs.getInt("threadId");
+        } catch (SQLException e) {
+            System.err.println("Failed to query database for post " + id + ": " + e.getMessage());
+        } finally {
+            close(rs, statement);
+        }
+        return post;
+    }
+
+    public PostRange getRangeOfPosts(int startYear, int startMonth, int startDay, int endYear, int endMonth, int endDay) {
+        PostRange range = null;
+        PreparedStatement statement = null;
+        ResultSet rs = null;
+        try {
+            String sql = "SELECT DATE(date) AS date, COUNT(DATE(date)) AS count FROM Post WHERE date >= ? AND date <= ? GROUP BY DATE(date)";
+            System.out.println(sql);
+            statement = db.prepareStatement(sql);
+            LocalDate start = new LocalDate(startYear, startMonth, startDay);
+            statement.setString(1, start.toString());
+            LocalDate end = new LocalDate(endYear, endMonth, endDay);
+            statement.setString(2, end.toString());
+            rs = statement.executeQuery();
+
+            range = new PostRange();
+            while (rs.next()) {
+                String date = rs.getString("date");
+                int count = rs.getInt("count");
+                System.out.println(date + ": " + count);
+                range.days.put(date, count);
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to query database for post range: " + e.getMessage());
+        } finally {
+            close(rs, statement);
+        }
+        return range;
     }
 
     /**

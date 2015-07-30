@@ -30,14 +30,57 @@ public class ChattyStatsAPI {
                 }
             }
         });
+
+        get(new Route("/from/:startYear/:startMonth/:startDay/to/:endYear/:endMonth/:endDay") {
+            @Override
+            public Object handle(Request request, Response response) {
+                response.header("Access-Control-Allow-Origin", "*");
+                int startYear, startMonth, startDay, endYear, endMonth, endDay;
+                try {
+                    startYear = Integer.parseInt(request.params(":startYear"));
+                    startMonth = Integer.parseInt(request.params(":startMonth"));
+                    startDay = Integer.parseInt(request.params(":startDay"));
+                    endYear = Integer.parseInt(request.params(":endYear"));
+                    endMonth = Integer.parseInt(request.params(":endMonth"));
+                    endDay = Integer.parseInt(request.params(":endDay"));
+                    return getRangeOfPosts(startYear, startMonth, startDay, endYear, endMonth, endDay);
+                } catch (NumberFormatException e) {
+                    return error("Year/month/day formatted incorrectly");
+                }
+            }
+        });
+
+        get(new Route("/post/:id") {
+            @Override
+            public Object handle(Request request, Response response) {
+                response.header("Access-Control-Allow-Origin", "*");
+                int id;
+                try {
+                    id = Integer.parseInt(request.params(":id"));
+                    return getPost(id);
+                } catch (NumberFormatException e) {
+                    return error("Post ID formatted incorrectly");
+                }
+            }
+        });
     }
 
-    public String error(String message) {
+    private String error(String message) {
         return "{ \"error\": \"" + message + "\" }";
     }
 
-    public String getDay(int year, int month, int day) {
+    private String getDay(int year, int month, int day) {
         DayStats stats = db.getDayStats(year, month, day);
         return new Gson().toJson(stats);
+    }
+
+    private String getPost(int id) {
+        Post post = db.getPost(id);
+        return new Gson().toJson(post);
+    }
+
+    private String getRangeOfPosts(int startYear, int startMonth, int startDay, int endYear, int endMonth, int endDay) {
+        PostRange range = db.getRangeOfPosts(startYear, startMonth, startDay, endYear, endMonth, endDay);
+        return new Gson().toJson(range);
     }
 }
