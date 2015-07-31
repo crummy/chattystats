@@ -106,7 +106,7 @@ public class Database {
         ResultSet rs = null;
         LocalDate date = new LocalDate(year, month, day);
         try {
-            String sql = "SELECT * FROM Post WHERE date >= '?' AND date < '?'";
+            String sql = "SELECT * FROM Post WHERE date >= ? AND date < ?";
             statement = db.prepareStatement(sql);
             statement.setString(1, date.toString());
             statement.setString(2, date.plusDays(1).toString());
@@ -184,7 +184,6 @@ public class Database {
         ResultSet rs = null;
         try {
             String sql = "SELECT DATE(date) AS date, COUNT(DATE(date)) AS count FROM Post WHERE date >= ? AND date <= ? GROUP BY DATE(date)";
-            System.out.println(sql);
             statement = db.prepareStatement(sql);
             LocalDate start = new LocalDate(startYear, startMonth, startDay);
             statement.setString(1, start.toString());
@@ -196,7 +195,6 @@ public class Database {
             while (rs.next()) {
                 String date = rs.getString("date");
                 int count = rs.getInt("count");
-                System.out.println(date + ": " + count);
                 range.days.put(date, count);
             }
         } catch (SQLException e) {
