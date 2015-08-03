@@ -121,6 +121,7 @@ public class Crawler implements Runnable {
             post.author = postObj.get("author").getAsString();
             post.date = postObj.get("date").getAsString();
             post.category = postObj.get("category").getAsString();
+            post.body = postObj.get("body").getAsString();
 
             boolean isRootPost = post.parentId == 0;
             if (isRootPost) {

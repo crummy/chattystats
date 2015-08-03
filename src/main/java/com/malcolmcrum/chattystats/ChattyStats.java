@@ -23,6 +23,7 @@ public class ChattyStats {
         } catch (IOException e) {
             System.err.println("Failed to read settings file: " + e.getMessage());
         }
+        DayStats.settings = settings;
 
         Database db = null;
         try {

@@ -21,19 +21,6 @@ public class Database {
     }
 
     /**
-     * Call this at program termination.
-     * TODO: Use or remove this
-     */
-    public void closeDatabase() {
-        try {
-            db.close();
-        } catch (SQLException e) {
-            // Just print an error. We don't really care much at this point.
-            System.err.println("Caught an error closing database connection.");
-        }
-    }
-
-    /**
      * Requests the highest post ID from the database, which should be the most recent.
      * @return PostID of most recent element
      */
@@ -165,12 +152,15 @@ public class Database {
                 String category = rs.getString("category");
                 int categoryCount = stats.postsInCategories.get(category);
                 stats.postsInCategories.put(category, categoryCount + 1);
+
+                stats.addWords(rs.getString("body"));
             }
+            stats.calculateTopWords();
 
             stats.busiestPostId = busiestPostId;
 
             for (int i = 0; i < 10; ++i) {
-                int topPostCount = 0;
+                int topPostCount = -1;
                 String topAuthor = "";
                 for (String author : authors.keySet()) {
                     int posts = authors.get(author);

@@ -2,6 +2,8 @@ package com.malcolmcrum.chattystats;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -36,5 +38,10 @@ public class Settings {
 
     public int getCrawlIntervalMs() {
         return Integer.parseInt(prop.getProperty("crawl_interval_ms", "600000"));
+    }
+
+    public List<String> getIgnoredWords() {
+        String wordString = prop.getProperty("ignored_words", "");
+        return Arrays.asList(wordString.split(";"));
     }
 }
