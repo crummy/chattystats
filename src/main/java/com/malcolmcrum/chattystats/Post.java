@@ -8,6 +8,7 @@ public class Post {
     int id;
     int parentId;
     int threadId;
+    int replyCount;
     String author;
     String category;
     String body;

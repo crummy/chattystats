@@ -60,8 +60,7 @@ public class Database {
         PreparedStatement statement = null;
         boolean success = true;
         try {
-            // TODO: Make sql-injection safe
-            String sql = "INSERT INTO Post (id, threadId, parentId, category, author, date) VALUES(?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO Post (id, threadId, parentId, category, author, date, body) VALUES(?, ?, ?, ?, ?, ?, ?)";
             statement = db.prepareStatement(sql);
             statement.setInt(1, post.id);
             statement.setInt(2, post.threadId);
@@ -69,6 +68,7 @@ public class Database {
             statement.setString(4, post.category);
             statement.setString(5, post.author);
             statement.setString(6, post.date);
+            statement.setString(7, post.body);
             statement.executeUpdate();
             db.commit();
         } catch (SQLException e) {
@@ -78,6 +78,37 @@ public class Database {
         } finally {
             close(null, statement);
         }
+        return success;
+    }
+
+    public boolean calculatePostCount(int id) {
+        PreparedStatement statement = null;
+        ResultSet rs = null;
+        int count;
+        boolean success = true;
+
+        try {
+            String sql = "SELECT COUNT(id) FROM Post WHERE parentId=?";
+            statement = db.prepareStatement(sql);
+            statement.setInt(1, id);
+            rs = statement.executeQuery();
+
+            rs.next();
+            count = rs.getInt("COUNT(id)");
+
+            sql = "UPDATE Post SET replyCount=? WHERE id=?";
+            statement = db.prepareStatement(sql);
+            statement.setInt(1, count);
+            statement.setInt(2, id);
+            statement.executeUpdate();
+            db.commit();
+        } catch (SQLException e) {
+            System.out.println("Failed to get/set post count for post #" + id + ": " + e.getMessage());
+            success = false;
+        } finally {
+            close(rs, statement);
+        }
+
         return success;
     }
 
@@ -114,10 +145,17 @@ public class Database {
 
             stats = new DayStats();
             HashMap<String, Integer> authors = new HashMap<>();
+            int busiestPostId = -1;
+            int busiestPostReplyCount = -1;
             while (rs.next()) {
                 stats.totalPosts++;
                 if (rs.getInt("parentId") == 0) {
                     stats.totalRootPosts++;
+                }
+
+                if (rs.getInt("replyCount") > busiestPostReplyCount) {
+                    busiestPostReplyCount = rs.getInt("replyCount");
+                    busiestPostId = rs.getInt("id");
                 }
 
                 String author = rs.getString("author");
@@ -128,6 +166,8 @@ public class Database {
                 int categoryCount = stats.postsInCategories.get(category);
                 stats.postsInCategories.put(category, categoryCount + 1);
             }
+
+            stats.busiestPostId = busiestPostId;
 
             for (int i = 0; i < 10; ++i) {
                 int topPostCount = 0;
@@ -168,8 +208,10 @@ public class Database {
             post.category = rs.getString("category");
             post.date = rs.getString("date");
             post.id = rs.getInt("id");
+            post.body = rs.getString("body");
             post.parentId = rs.getInt("parentId");
             post.threadId = rs.getInt("threadId");
+            post.replyCount = rs.getInt("replyCount");
         } catch (SQLException e) {
             System.err.println("Failed to query database for post " + id + ": " + e.getMessage());
         } finally {
@@ -262,6 +304,7 @@ public class Database {
                 "    [id] INTEGER PRIMARY KEY NOT NULL UNIQUE, \n" +
                 "    [threadId] INTEGER NOT NULL, \n" +
                 "    [parentId] INTEGER NOT NULL, \n" +
+                "    [replyCount] INTEGER, \n" +
                 "    [category] TEXT, \n" +
                 "    [author] TEXT NOT NULL, \n" +
                 "    [body] TEXT, \n" +

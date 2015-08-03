@@ -9,6 +9,7 @@ import java.util.*;
 public class DayStats {
     int totalPosts;
     int totalRootPosts;
+    int busiestPostId;
     Map<String, Integer> postsInCategories;
     List<TopAuthor> topAuthors;
 

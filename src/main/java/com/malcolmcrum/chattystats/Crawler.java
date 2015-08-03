@@ -5,9 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import java.io.IOException;
-import java.sql.*;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.Date;
 
 /**
@@ -80,15 +78,15 @@ public class Crawler implements Runnable {
 
     private void getPosts() {
         System.out.println("Checking for new posts...");
-        int latestPostIdInDatabase = db.getLatestPostID();
+        final int latestPostIdInDatabase = db.getLatestPostID();
         System.out.println("Latest post ID from database: " + latestPostIdInDatabase);
 
         if (latestPostIdInDatabase == -1) {
-            int latestPostIdFromShack = api.getLatestPostID();
+            final int latestPostIdFromShack = api.getLatestPostID();
             System.out.println("No posts found in database. Populating from " + latestPostIdFromShack + " backwards.");
             populateDatabaseWithPosts(latestPostIdFromShack, true, true);
         } else {
-            int nextPost = latestPostIdInDatabase + 1;
+            final int nextPost = latestPostIdInDatabase + 1;
             System.out.println("Populating posts from " + nextPost + " onwards.");
             populateDatabaseWithPosts(nextPost, false, true);
         }
@@ -102,49 +100,69 @@ public class Crawler implements Runnable {
      */
     private void populateDatabaseWithPosts(int startID, boolean isReversed, boolean recurse ) {
         if (startID < 0) {
-            startID = 0;
+            // In case we've gone backwards, too far.
+            return;
         }
         JsonArray posts = api.getPosts(startID, isReversed);
         int successfulPosts = 0;
+
+        // We keep track of threadIds found in the search. A post here means a root post elsewhere has one more reply,
+        // and later on we will calculate the total replies for those root posts.
+        Set<Integer> rootPostIds = new HashSet<>();
 
         for (final JsonElement postElement : posts) {
             JsonObject postObj = postElement.getAsJsonObject();
             Post post = new Post();
             post.id = postObj.get("id").getAsInt();
             if (post.id == 0) continue; // id=0 is bad data; date is out of order and fields are empty. Ignore it.
+
             post.parentId = postObj.get("parentId").getAsInt();
             post.threadId = postObj.get("threadId").getAsInt();
             post.author = postObj.get("author").getAsString();
             post.date = postObj.get("date").getAsString();
             post.category = postObj.get("category").getAsString();
+
+            boolean isRootPost = post.parentId == 0;
+            if (isRootPost) {
+                rootPostIds.add(post.id);
+            }
+
             if (db.addPost(post)) {
                 successfulPosts++;
             }
         }
 
+        for (Integer postId : rootPostIds) {
+            db.calculatePostCount(postId);
+        }
+
         if (posts.size() == 0) {
             System.out.println("No additional posts found.");
         } else  {
-            int firstID = posts.get(0).getAsJsonObject().get("id").getAsInt();
-            int lastID = posts.get(posts.size()-1).getAsJsonObject().get("id").getAsInt();
-            int totalPosts = posts.size();
-            int failedPosts = totalPosts - successfulPosts;
+            final int firstID = posts.get(0).getAsJsonObject().get("id").getAsInt();
+            final int lastID = posts.get(posts.size()-1).getAsJsonObject().get("id").getAsInt();
+            final int totalPosts = posts.size();
+            final int failedPosts = totalPosts - successfulPosts;
             System.out.print("Adding " + totalPosts + " posts [" + firstID + ".." + lastID + "]: ");
             if (failedPosts == 0) {
                 System.err.println("Success.");
             } else {
-                System.out.println(failedPosts + "failed!");
+                System.out.println(failedPosts + " failed!");
             }
         }
 
-        if (posts.size() != 0 && recurse) {
-            if (isReversed) {
-                int nextStartID = posts.get(posts.size()-1).getAsJsonObject().get("id").getAsInt() - 1;
-                populateDatabaseWithPosts(nextStartID, true, true);
-            } else {
-                int nextStartID = posts.get(posts.size()-1).getAsJsonObject().get("id").getAsInt() + 1;
-                populateDatabaseWithPosts(nextStartID, false, true);
-            }
+        // TODO: clean up this logic mess
+        if (isReversed && posts.size() != 0 && recurse) {
+            final int nextStartID = posts.get(posts.size() - 1).getAsJsonObject().get("id").getAsInt() - 1;
+            populateDatabaseWithPosts(nextStartID, true, true);
+        } else if (!isReversed && posts.size() != 0 && recurse) {
+            final int nextStartID = posts.get(posts.size() - 1).getAsJsonObject().get("id").getAsInt() + 1;
+            populateDatabaseWithPosts(nextStartID, false, true);
+        } else if (isReversed && recurse) {
+            // When going backwards, there may be some gaps in the database, so we don't do the posts.size() check if
+            // we are.
+            final int nextStartID = posts.get(posts.size()-1).getAsJsonObject().get("id").getAsInt() - 1;
+            populateDatabaseWithPosts(nextStartID, true, true);
         }
     }
 }
