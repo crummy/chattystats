@@ -18,12 +18,18 @@ public class Crawler implements Runnable {
     private ShackAPI api;
 
     public Crawler(Settings settings, Database db) throws IOException {
+        this(settings, db, true);
+    }
+
+    public Crawler(Settings settings, Database db, boolean beginCrawling) throws IOException {
         this.settings = settings;
         this.db = db;
         this.api = new ShackAPI(settings);
 
-        Thread thread = new Thread(this, "Crawler");
-        thread.start();
+        if (beginCrawling) {
+            Thread thread = new Thread(this, "Crawler");
+            thread.start();
+        }
     }
 
     @Override
@@ -36,7 +42,7 @@ public class Crawler implements Runnable {
         ScheduledCrawl scheduledCrawl = new ScheduledCrawl(this);
         Timer timer = new Timer();
         timer.schedule(scheduledCrawl, interval, interval);
-        System.out.println("Crawler now operating. Checking for new posts and shackers every " + interval/1000 + "s.");
+        System.out.println("Crawler now operating. Checking for new posts and shackers every " + interval / 1000 + "s.");
     }
 
     private static class ScheduledCrawl extends TimerTask {
@@ -56,7 +62,7 @@ public class Crawler implements Runnable {
         }
     }
 
-    private void getShackers() {
+    void getShackers() {
         System.out.println("Checking for new shackers...");
         JsonArray shackers = api.getShackers();
         int newShackers = 0;
@@ -76,7 +82,11 @@ public class Crawler implements Runnable {
         }
     }
 
-    private void getPosts() {
+    void getPosts() {
+        getPosts(true);
+    }
+
+    void getPosts(boolean useRecursion) {
         System.out.println("Checking for new posts...");
         final int latestPostIdInDatabase = db.getLatestPostID();
         System.out.println("Latest post ID from database: " + latestPostIdInDatabase);
@@ -84,11 +94,11 @@ public class Crawler implements Runnable {
         if (latestPostIdInDatabase == -1) {
             final int latestPostIdFromShack = api.getLatestPostID();
             System.out.println("No posts found in database. Populating from " + latestPostIdFromShack + " backwards.");
-            populateDatabaseWithPosts(latestPostIdFromShack, true, true);
+            populateDatabaseWithPosts(latestPostIdFromShack, true, useRecursion);
         } else {
             final int nextPost = latestPostIdInDatabase + 1;
             System.out.println("Populating posts from " + nextPost + " onwards.");
-            populateDatabaseWithPosts(nextPost, false, true);
+            populateDatabaseWithPosts(nextPost, false, useRecursion);
         }
     }
 

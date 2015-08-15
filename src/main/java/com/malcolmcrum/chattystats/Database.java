@@ -10,7 +10,7 @@ import java.util.HashMap;
  * Created by Malcolm on 7/26/2015.
  */
 public class Database {
-    private Connection db;
+    Connection conn;
     private Settings settings;
 
     public Database(Settings settings) throws SQLException {
@@ -29,7 +29,7 @@ public class Database {
         Statement statement = null;
         ResultSet rs = null;
         try {
-            statement = db.createStatement();
+            statement = conn.createStatement();
             String sql = "SELECT * FROM POST ORDER BY id DESC LIMIT 1";
             rs = statement.executeQuery(sql);
             rs.next();
@@ -48,7 +48,7 @@ public class Database {
         boolean success = true;
         try {
             String sql = "INSERT INTO Post (id, threadId, parentId, category, author, date, body) VALUES(?, ?, ?, ?, ?, ?, ?)";
-            statement = db.prepareStatement(sql);
+            statement = conn.prepareStatement(sql);
             statement.setInt(1, post.id);
             statement.setInt(2, post.threadId);
             statement.setInt(3, post.parentId);
@@ -57,10 +57,10 @@ public class Database {
             statement.setString(6, post.date);
             statement.setString(7, post.body);
             statement.executeUpdate();
-            db.commit();
+            conn.commit();
         } catch (SQLException e) {
             // Probably the post already exists? TODO: Handle it.
-            System.out.println("Failed to add post #" + post.id + " to DB: " + e.getMessage());
+            System.out.println("Failed to add post #" + post.id + " to conn: " + e.getMessage());
             success = false;
         } finally {
             close(null, statement);
@@ -76,7 +76,7 @@ public class Database {
 
         try {
             String sql = "SELECT COUNT(id) FROM Post WHERE parentId=?";
-            statement = db.prepareStatement(sql);
+            statement = conn.prepareStatement(sql);
             statement.setInt(1, id);
             rs = statement.executeQuery();
 
@@ -84,11 +84,11 @@ public class Database {
             count = rs.getInt("COUNT(id)");
 
             sql = "UPDATE Post SET replyCount=? WHERE id=?";
-            statement = db.prepareStatement(sql);
+            statement = conn.prepareStatement(sql);
             statement.setInt(1, count);
             statement.setInt(2, id);
             statement.executeUpdate();
-            db.commit();
+            conn.commit();
         } catch (SQLException e) {
             System.out.println("Failed to get/set post count for post #" + id + ": " + e.getMessage());
             success = false;
@@ -104,11 +104,11 @@ public class Database {
         boolean success = true;
         try {
             String sql = "INSERT INTO Shacker (name, registrationDate) VALUES (?, ?)";
-            statement = db.prepareStatement(sql);
+            statement = conn.prepareStatement(sql);
             statement.setString(1, shacker.username);
             statement.setString(2, shacker.date);
             statement.executeUpdate();
-            db.commit();
+            conn.commit();
         } catch (SQLException e) {
             // If shacker already exists, we don't mind.
             success = false;
@@ -125,7 +125,7 @@ public class Database {
         LocalDate date = new LocalDate(year, month, day);
         try {
             String sql = "SELECT * FROM Post WHERE date >= ? AND date < ?";
-            statement = db.prepareStatement(sql);
+            statement = conn.prepareStatement(sql);
             statement.setString(1, date.toString());
             statement.setString(2, date.plusDays(1).toString());
             rs = statement.executeQuery();
@@ -187,7 +187,7 @@ public class Database {
         ResultSet rs = null;
         try {
             String sql = "SELECT * FROM Post WHERE id == ?";
-            statement = db.prepareStatement(sql);
+            statement = conn.prepareStatement(sql);
             statement.setInt(1, id);
             rs = statement.executeQuery();
 
@@ -216,7 +216,7 @@ public class Database {
         ResultSet rs = null;
         try {
             String sql = "SELECT DATE(date) AS date, COUNT(DATE(date)) AS count FROM Post WHERE date >= ? AND date <= ? GROUP BY DATE(date)";
-            statement = db.prepareStatement(sql);
+            statement = conn.prepareStatement(sql);
             LocalDate start = new LocalDate(startYear, startMonth, startDay);
             statement.setString(1, start.toString());
             LocalDate end = new LocalDate(endYear, endMonth, endDay);
@@ -243,8 +243,8 @@ public class Database {
     private void connectToDatabase() throws SQLException {
         try {
             Class.forName("org.sqlite.JDBC");
-            db = DriverManager.getConnection("jdbc:sqlite:" + settings.getDatabaseFileName());
-            db.setAutoCommit(false);
+            conn = DriverManager.getConnection("jdbc:sqlite:" + settings.getDatabaseFileName());
+            conn.setAutoCommit(false);
         } catch (ClassNotFoundException e) {
             System.err.println("JDBC class not found. Library not installed? " + e.getMessage());
         }
@@ -274,7 +274,7 @@ public class Database {
      */
     private void createTablesIfNecessary() throws SQLException {
         try {
-            DatabaseMetaData dbm = db.getMetaData();
+            DatabaseMetaData dbm = conn.getMetaData();
 
             ResultSet rs = dbm.getTables(null, null, "Post", null);
             if (!rs.next()) createPostTable();
@@ -289,7 +289,7 @@ public class Database {
     }
 
     private void createPostTable() throws SQLException {
-        Statement statement = db.createStatement();
+        Statement statement = conn.createStatement();
         String sql = "CREATE TABLE [Post](\n" +
                 "    [id] INTEGER PRIMARY KEY NOT NULL UNIQUE, \n" +
                 "    [threadId] INTEGER NOT NULL, \n" +
@@ -304,17 +304,17 @@ public class Database {
                 "ON [Post](\n" +
                 "    [date])";
         statement.executeUpdate(sql);
-        db.commit();
+        conn.commit();
         statement.close();
     }
 
     private void createShackerTable() throws SQLException {
-        Statement statement = db.createStatement();
+        Statement statement = conn.createStatement();
         String sql = "CREATE TABLE [Shacker](\n" +
                 "    [name] TEXT PRIMARY KEY NOT NULL UNIQUE, \n" +
                 "    [registrationDate] TEXT)";
         statement.executeUpdate(sql);
-        db.commit();
+        conn.commit();
         statement.close();
     }
 }
