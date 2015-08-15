@@ -15,6 +15,14 @@ public class ChattyStatsAPI {
     public ChattyStatsAPI(Database db) {
         this.db = db;
 
+        get(new Route("/test") {
+            @Override
+            public Object handle(Request request, Response response) {
+                response.header("Access-Control-Allow-Origin", "*");
+                return "{ \"OK\": \"Everything is OK.\" }";
+            }
+        });
+
         get(new Route("/day/:year/:month/:day") {
             @Override
             public Object handle(Request request, Response response) {

@@ -87,6 +87,11 @@ public class Crawler implements Runnable {
     }
 
     void getPosts(boolean useRecursion) {
+        try {
+            throw new Exception();
+        } catch (Exception e) {
+            System.out.println(e.getStackTrace());
+        }
         System.out.println("Checking for new posts...");
         final int latestPostIdInDatabase = db.getLatestPostID();
         System.out.println("Latest post ID from database: " + latestPostIdInDatabase);
@@ -108,7 +113,7 @@ public class Crawler implements Runnable {
      * @param isReversed Indicates whether to look for posts prior to startID or after
      * @param recurse If true, will find next set of posts, until no more are left to find.
      */
-    private void populateDatabaseWithPosts(int startID, boolean isReversed, boolean recurse ) {
+    void populateDatabaseWithPosts(int startID, boolean isReversed, boolean recurse ) {
         if (startID < 0) {
             // In case we've gone backwards, too far.
             return;

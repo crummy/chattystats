@@ -4,6 +4,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.sql.*;
 
@@ -13,14 +14,16 @@ import static junit.framework.Assert.*;
  * Tests the live API.
  * Created by Malcolm on 8/15/2015.
  */
-public class DBTest {
+public class DBAndCrawlerTest {
     static Connection connection;
     static Crawler crawler;
+    static String testDBFilename;
 
     @BeforeClass
     public static void setUp() throws IOException, SQLException {
         Settings settings = new Settings("test.properties");
         DayStats.settings = settings;
+        testDBFilename = settings.getDatabaseFileName();
 
         Database db = new Database(settings);
         connection = db.conn;
@@ -48,6 +51,7 @@ public class DBTest {
 
     @Test
     public void verifyShackersTablePopulates() throws SQLException {
+        assertTrue(false);
         crawler.getShackers();
 
         Statement statement = connection.createStatement();
@@ -70,8 +74,25 @@ public class DBTest {
         rs.close();
     }
 
+    @Test public void verifyPopulateDatabaseWithPostsMethodAddsPosts() throws SQLException {
+        Statement statement = connection.createStatement();
+        String sql = "SELECT count(id) FROM POST";
+        ResultSet rs = statement.executeQuery(sql);
+        int postCountBefore = rs.getInt("count(id)");
+
+        crawler.populateDatabaseWithPosts(1, false, false);
+
+        rs = statement.executeQuery(sql);
+        int postCountAfter = rs.getInt("count(id)");
+
+        assertFalse(postCountAfter == postCountBefore);
+    }
+
     @AfterClass
-    public static void tearDown() throws SQLException {
+    public static void tearDown() throws SQLException, IOException {
         connection.close();
+
+        File testDB = new File(testDBFilename);
+        testDB.delete();
     }
 }
