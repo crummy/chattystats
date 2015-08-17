@@ -14,10 +14,10 @@ import static junit.framework.Assert.*;
  * Tests the live API.
  * Created by Malcolm on 8/15/2015.
  */
-public class DBAndCrawlerTest {
-    static Connection connection;
-    static Crawler crawler;
+public class CrawlerTester {
+    static Database db;
     static String testDBFilename;
+    static Crawler crawler;
 
     @BeforeClass
     public static void setUp() throws IOException, SQLException {
@@ -25,20 +25,18 @@ public class DBAndCrawlerTest {
         DayStats.settings = settings;
         testDBFilename = settings.getDatabaseFileName();
 
-        Database db = new Database(settings);
-        connection = db.conn;
-
-        crawler = new Crawler(settings, db, false);
+        db = new Database(settings);
+        crawler = new Crawler(settings, db);
     }
 
     @Test
     public void verifyDatabaseConnection() throws SQLException {
-        assertTrue(connection.isValid(5));
+        assertTrue(db.conn.isValid(5));
     }
 
     @Test
     public void verifyTablesExist() throws SQLException {
-        DatabaseMetaData dbm = connection.getMetaData();
+        DatabaseMetaData dbm = db.conn.getMetaData();
 
         ResultSet rs = dbm.getTables(null, null, "Post", null);
         assertNotNull(rs.next());
@@ -54,7 +52,7 @@ public class DBAndCrawlerTest {
         assertTrue(false);
         crawler.getShackers();
 
-        Statement statement = connection.createStatement();
+        Statement statement = db.conn.createStatement();
         String sql = "SELECT * FROM SHACKER";
         ResultSet rs = statement.executeQuery(sql);
         assertNotNull(rs.next());
@@ -66,7 +64,7 @@ public class DBAndCrawlerTest {
     public void verifyPostsTablePopulates() throws SQLException {
         crawler.getPosts();
 
-        Statement statement = connection.createStatement();
+        Statement statement = db.conn.createStatement();
         String sql = "SELECT * FROM POST";
         ResultSet rs = statement.executeQuery(sql);
         assertNotNull(rs.next());
@@ -75,7 +73,7 @@ public class DBAndCrawlerTest {
     }
 
     @Test public void verifyPopulateDatabaseWithPostsMethodAddsPosts() throws SQLException {
-        Statement statement = connection.createStatement();
+        Statement statement = db.conn.createStatement();
         String sql = "SELECT count(id) FROM POST";
         ResultSet rs = statement.executeQuery(sql);
         int postCountBefore = rs.getInt("count(id)");
@@ -90,7 +88,7 @@ public class DBAndCrawlerTest {
 
     @AfterClass
     public static void tearDown() throws SQLException, IOException {
-        connection.close();
+        db.conn.close();
 
         File testDB = new File(testDBFilename);
         testDB.delete();

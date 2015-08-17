@@ -4,8 +4,9 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.sql.SQLException;
@@ -42,16 +43,27 @@ public class APITest {
 
     @Test
     public void verifyPost() throws IOException {
-        URL url = new URL("http://localhost:4567/post/1");
-        HttpURLConnection request = (HttpURLConnection) url.openConnection();
-        request.connect();
-        InputStream in = (InputStream)request.getContent();
-        assertEquals(in.read(), "");
+        String result = getDataFrom("http://localhost:4567/post/1");
+        assertEquals(result, "{\"id\":0,\"parentId\":0,\"threadId\":0,\"replyCount\":0}\n");
     }
 
     @AfterClass
     public static void tearDown() throws SQLException {
         db.conn.close();
+    }
+
+    private String getDataFrom(String requestedURL) throws IOException {
+        URL url = new URL(requestedURL);
+        HttpURLConnection urlConnection = (HttpURLConnection)url.openConnection();
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+
+        String line;
+        StringBuilder content = new StringBuilder();
+        while ((line = bufferedReader.readLine()) != null) {
+            content.append(line + "\n");
+        }
+        bufferedReader.close();
+        return content.toString();
     }
 }
 

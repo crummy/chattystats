@@ -16,6 +16,7 @@ import java.util.zip.GZIPInputStream;
 
 /**
  * Gets data from the Shack API.
+ * TODO: Make API calls populate pretty like http://stackoverflow.com/questions/10500775/parse-json-from-httpurlconnection-object
  * Created by Malcolm on 7/26/2015.
  */
 public class ShackAPI {
